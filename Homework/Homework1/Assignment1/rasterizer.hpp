@@ -28,8 +28,8 @@ inline Buffers operator&(Buffers a, Buffers b)
 
 enum class Primitive
 {
-    Line,
-    Triangle
+    Line,       // 0
+    Triangle    // 1
 };
 
 /*
@@ -71,14 +71,14 @@ class rasterizer
     void rasterize_wireframe(const Triangle& t);
 
   private:
-    Eigen::Matrix4f model;
+    Eigen::Matrix4f model;  // 3 transform objects
     Eigen::Matrix4f view;
     Eigen::Matrix4f projection;
 
     std::map<int, std::vector<Eigen::Vector3f>> pos_buf;
     std::map<int, std::vector<Eigen::Vector3i>> ind_buf;
 
-    std::vector<Eigen::Vector3f> frame_buf;
+    std::vector<Eigen::Vector3f> frame_buf; // frame buffer object, storing the color data drawing on screen.
     std::vector<float> depth_buf;
     int get_index(int x, int y);
 

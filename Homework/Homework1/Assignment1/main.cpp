@@ -3,9 +3,11 @@
 #include <eigen3/Eigen/Eigen>
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include <cmath>
 
 constexpr double MY_PI = 3.1415926;
 
+// Function: Get the Translation Matrix for moving to the eye_pos
 Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
 {
     Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
@@ -19,6 +21,12 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
     return view;
 }
 
+/*
+    TODO_1:
+    @detail:
+        逐个元素地构建模型变换矩阵，并返回该矩阵。
+        此函数中，只需实现三维中绕z轴旋转的变换矩阵，不用处理平移和缩放
+*/
 Eigen::Matrix4f get_model_matrix(float rotation_angle)
 {
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
@@ -27,9 +35,28 @@ Eigen::Matrix4f get_model_matrix(float rotation_angle)
     // Create the model matrix for rotating the triangle around the Z axis.
     // Then return it.
 
+    /*  view transformation:
+    * 1. position <e>
+    * 2. gaze direction <g>
+    * 3. Up direction <t>
+    */
+    Eigen::Matrix4f rotation;
+    double alpha = (rotation_angle / 180.0) * MY_PI;
+    rotation << cos(alpha), -1.0 * sin(alpha), 0, 0,
+                sin(alpha), cos(alpha), 0, 0,
+                0 ,0, 1, 0,
+                0, 0, 0, 1;
+    model = rotation * model;
+
     return model;
 }
 
+/*
+    TODO_2:
+    @detail:
+        使用给定的参数逐个元素地构建透视投影矩阵并返回该矩阵。
+        frustum -> Cuboid -> regular cube(i.e. [-1, 1]^3)
+*/
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
                                       float zNear, float zFar)
 {
@@ -40,10 +67,41 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
     // TODO: Implement this function
     // Create the projection matrix for the given parameters.
     // Then return it.
+    
+    /*  Perspective Projection:
+    * 1. Squish (Pers->Orthographic)
+    * 2. Orthographic Projection
+    *   parameters:
+    * eye_fov: field of view Y
+    * aspect_ratio: width / height
+    * 
+    * Example: get_projection_matrix(45, 1, 0.1, 50)
+    */
+    double theta = ((eye_fov / 2) / 180.0) * MY_PI; // half angle of field of eye
+    double yHeight = 2.0 * zNear * tan(theta);
+    double xWidth = aspect_ratio * yHeight;
+    double zLong = zNear - zFar;    // 这里注意一下：由于标准是看向-z轴，所以这里应该要near - far
+    Eigen::Matrix4f squish;
+    Eigen::Matrix4f ortho;
+    squish << zNear, 0, 0, 0,
+                0, zNear, 0, 0,
+                0, 0, zNear + zFar, -1.0 * zNear * zFar,
+                0, 0, 1, 0;
+    ortho << 2.0 / xWidth, 0, 0, 0,
+                0, 2.0 / yHeight, 0, 0,
+                0, 0, 2.0 / zLong, 0,
+                0, 0, 0, 1;
+
+    projection = ortho * squish * projection;
 
     return projection;
 }
 
+/*
+    TODO_3:
+    @detail:
+        自行补充你所需的其他操作
+*/
 int main(int argc, const char** argv)
 {
     float angle = 0;
@@ -61,7 +119,7 @@ int main(int argc, const char** argv)
     rst::rasterizer r(700, 700);
 
     Eigen::Vector3f eye_pos = {0, 0, 5};
-
+    // v0, v1, v2 -> screen coordinate
     std::vector<Eigen::Vector3f> pos{{2, 0, -2}, {0, 2, -2}, {-2, 0, -2}};
 
     std::vector<Eigen::Vector3i> ind{{0, 1, 2}};
@@ -88,7 +146,7 @@ int main(int argc, const char** argv)
         return 0;
     }
 
-    while (key != 27) {
+    while (key != 27) { // 27的ASCII码对应着ESC键
         r.clear(rst::Buffers::Color | rst::Buffers::Depth);
 
         r.set_model(get_model_matrix(angle));
