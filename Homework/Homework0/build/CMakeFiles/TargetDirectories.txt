@@ -1,3 +1,0 @@
-/home/m1kann/GAMES/GAMES101/Homework/pa0/build/CMakeFiles/Transformation.dir
-/home/m1kann/GAMES/GAMES101/Homework/pa0/build/CMakeFiles/edit_cache.dir
-/home/m1kann/GAMES/GAMES101/Homework/pa0/build/CMakeFiles/rebuild_cache.dir

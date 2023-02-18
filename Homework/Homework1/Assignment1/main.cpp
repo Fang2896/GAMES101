@@ -98,6 +98,31 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
 }
 
 /*
+    TODO_4:
+    @detail:
+        绕任意过原点的轴的旋转变换矩阵
+        用Rodrigues' Rotation Formmula
+*/
+Eigen::Matrix4f get_rotation(Vector3f axis, float angle) {
+    double fangle = (angle / 180.0) * MY_PI;
+    Eigen::Matrix4f rodrigues;
+    Eigen::Matrix4f I = Eigen::Matrix4f::Identity();
+    Eigen::Matrix4f N;
+    Eigen::Vector4f axi;
+    Eigen::RowVector4f taxi;
+    axi << axis.x(), axis.y(), axis.z(), 0;
+    taxi << axis.x(), axis.y(), axis.z(), 0;
+    N << 0, -axis.z(), axis.y(), 0,
+        axis.z(), 0, -axis.x(), 0,
+        -axis.y(), axis.x(), 0, 0,
+        0, 0, 0, 1;
+    rodrigues = cos(fangle) * I + (1 - cos(fangle)) * axi * taxi + sin(fangle) * N;
+    rodrigues(3, 3) = 1;    // 非齐次坐标公式应用在齐次坐标上，需要往右下角改1
+    return rodrigues;
+}
+
+
+/*
     TODO_3:
     @detail:
         自行补充你所需的其他操作
@@ -105,6 +130,7 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
 int main(int argc, const char** argv)
 {
     float angle = 0;
+    float ra;
     bool command_line = false;
     std::string filename = "output.png";
 
@@ -130,6 +156,16 @@ int main(int argc, const char** argv)
     int key = 0;
     int frame_count = 0;
 
+    /*
+    自行输入
+    */
+    std::cout << "Please enter the axis and angle:" << std::endl;
+    float rangle;   // 旋转角度
+    Eigen::Vector3f raxis;  // 旋转轴
+    std::cin >> raxis.x() >> raxis.y() >> raxis.z() >> ra;  //定义罗德里格斯旋转轴和角
+
+
+
     if (command_line) {
         r.clear(rst::Buffers::Color | rst::Buffers::Depth);
 
@@ -145,13 +181,23 @@ int main(int argc, const char** argv)
 
         return 0;
     }
-
+    bool rflag = false;
     while (key != 27) { // 27的ASCII码对应着ESC键
         r.clear(rst::Buffers::Color | rst::Buffers::Depth);
 
         r.set_model(get_model_matrix(angle));
         r.set_view(get_view_matrix(eye_pos));
         r.set_projection(get_projection_matrix(45, 1, 0.1, 50));
+
+        /*
+        增强功能
+        */
+        
+        if (rflag) //如果按下r了，就开始绕给定任意轴旋转
+            r.set_rodrigues(get_rotation(raxis, rangle));
+        else
+            r.set_rodrigues(get_rotation({ 0,0,1 }, 0));
+
 
         r.draw(pos_id, ind_id, rst::Primitive::Triangle);
 
@@ -167,6 +213,9 @@ int main(int argc, const char** argv)
         }
         else if (key == 'd') {
             angle -= 10;
+        } else if (key == 'r') {
+            rflag = true;
+            rangle += ra;
         }
     }
 

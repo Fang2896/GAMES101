@@ -144,7 +144,7 @@ void rst::rasterizer::draw(rst::pos_buf_id pos_buffer, rst::ind_buf_id ind_buffe
     float f1 = (100 - 0.1) / 2.0;
     float f2 = (100 + 0.1) / 2.0;
 
-    Eigen::Matrix4f mvp = projection * view * model;
+    Eigen::Matrix4f mvp = projection * view * model * rodrigues;
     for (auto& i : ind)
     {
         Triangle t;
@@ -234,4 +234,13 @@ void rst::rasterizer::set_pixel(const Eigen::Vector3f& point, const Eigen::Vecto
     auto ind = (height-1-point.y())*width + point.x();
     frame_buf[ind] = color;
 }
+
+/**
+ * @brief Rodrigues 
+ *  rotation
+ */
+void rst::rasterizer::set_rodrigues(const Eigen::Matrix4f& r) {
+    rodrigues = r;
+}
+
 
