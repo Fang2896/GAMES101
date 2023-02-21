@@ -12,10 +12,9 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
 {
     Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
 
-    Eigen::Matrix4f translate;
+    Eigen::Matrix4f translate, fix_rotation;
     translate << 1, 0, 0, -eye_pos[0], 0, 1, 0, -eye_pos[1], 0, 0, 1,
         -eye_pos[2], 0, 0, 0, 1;
-
     view = translate * view;
 
     return view;
@@ -77,22 +76,31 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
     * 
     * Example: get_projection_matrix(45, 1, 0.1, 50)
     */
-    double theta = ((eye_fov / 2) / 180.0) * MY_PI; // half angle of field of eye
-    double yHeight = 2.0 * zNear * tan(theta);
-    double xWidth = aspect_ratio * yHeight;
-    double zLong = zNear - zFar;    // 这里注意一下：由于标准是看向-z轴，所以这里应该要near - far
+    // 防止中心对称旋转，先将所有z转为负数！因为我们的摄像机是向-z看的
+    zNear = -abs(zNear);
+    zFar = -abs(zFar);
+    float theta = ((eye_fov / 2) / 180.0) * MY_PI; // half angle of field of eye
+    float t = tan(theta) * abs(zNear);  // 这里表示的是距离，所以用abs
+    float b = - t;
+    float r = aspect_ratio * t;
+    float l = -r;
     Eigen::Matrix4f squish;
-    Eigen::Matrix4f ortho;
+    Eigen::Matrix4f scale, trans;
     squish << zNear, 0, 0, 0,
                 0, zNear, 0, 0,
                 0, 0, zNear + zFar, -1.0 * zNear * zFar,
                 0, 0, 1, 0;
-    ortho << 2.0 / xWidth, 0, 0, 0,
-                0, 2.0 / yHeight, 0, 0,
-                0, 0, 2.0 / zLong, 0,
+    scale << 2.0 / (r - l), 0, 0, 0,
+                0, 2.0 / (t - b), 0, 0,
+                0, 0, 2.0 / (zFar - zNear), 0,
+                0, 0, 0, 1;
+    trans << 1, 0, 0, -(r + l) / 2,
+                0, 1, 0, -(t + b) / 2,
+                0, 0, 1, -(zNear + zFar) / 2,
                 0, 0, 0, 1;
 
-    projection = ortho * squish * projection;
+
+    projection = scale * trans * squish * projection;
 
     return projection;
 }

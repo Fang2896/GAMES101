@@ -40,9 +40,24 @@ auto to_vec4(const Eigen::Vector3f& v3, float w = 1.0f)
 }
 
 
-static bool insideTriangle(int x, int y, const Vector3f* _v)
+static bool insideTriangle(float x, float y, const Vector3f* _v)
 {   
     // TODO : Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
+    Vector2f p;
+    p << x, y;
+
+    Vector2f v01 = _v[1].head(2) - _v[0].head(2);
+    Vector2f v12 = _v[2].head(2) - _v[1].head(2);
+    Vector2f v20 = _v[0].head(2) - _v[2].head(2);
+
+    Vector2f v0p = p - _v[0].head(2);
+    Vector2f v1p = p - _v[1].head(2);
+    Vector2f v2p = p - _v[2].head(2);
+
+    return  v01.x() * v0p.y() - v0p.x() * v01.y() > 0
+        &&  v12.x() * v1p.y() - v1p.x() * v12.y() > 0
+        &&  v20.x() * v2p.y() - v2p.x() * v20.y() > 0;
+
 }
 
 static std::tuple<float, float, float> computeBarycentric2D(float x, float y, const Vector3f* v)
@@ -108,6 +123,11 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     
     // TODO : Find out the bounding box of current triangle.
     // iterate through the pixel and find if the current pixel is inside the triangle
+    int left_x, right_x, low_y, upper_y;
+    left_x  = std::min(v[0].x(), std::min(v[1].x(), v[2].x()));
+    right_x = std::max(v[0].x(), std::max(v[1].x(), v[2].x()));
+    low_y   = std::min(v[0].y(), std::min(v[1].y(), v[2].y()));
+    upper_y = std::max(v[0].y(), std::max(v[1].y(), v[2].y()));
 
     // If so, use the following code to get the interpolated z value.
     //auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
@@ -116,6 +136,26 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
     //z_interpolated *= w_reciprocal;
 
     // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
+    for(int x = left_x; x <= right_x; x++) {
+        for(int y = low_y; y <= upper_y; y++) {
+            if(insideTriangle(x + 0.5, y + 0.5, t.v)) {
+                auto[alpha, beta, gamma] = computeBarycentric2D(x + 0.5, y + 0.5, t.v);
+                float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());   // 这里为什么是w？
+                float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                z_interpolated *= w_reciprocal; // 透视矫正插值
+
+                if(depth_buf[get_index(x, y)] > z_interpolated) {
+                    depth_buf[get_index(x, y)] = z_interpolated;    //  更新最小深度
+                    Vector3f point = {(float)x, (float)y, z_interpolated};
+                    // 由于目前的作业三角形仅仅为单色。故getColor()方法，仅仅取了第一个顶点的颜色！
+                    // 后面学习了着色shading后，就可以用插值来计算三角形里面不同像素的颜色了！
+                    Vector3f color = t.getColor(); 
+                    set_pixel(point, color);
+                }
+            }
+        }
+    }
+
 }
 
 void rst::rasterizer::set_model(const Eigen::Matrix4f& m)
