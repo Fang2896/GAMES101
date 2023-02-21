@@ -1,4 +1,4 @@
-# GAMES101 Homework Notes
+# GAMES101 Homework_0_1_2_3 Notes
 
 ---
 
@@ -156,22 +156,11 @@ int main(){
         // Students will implement this function
     
         Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
-    
-        // TODO: Implement this function
-        // Create the projection matrix for the given parameters.
-        // Then return it.
-        
-        /*  Perspective Projection:
-        * 1. Squish (Pers->Orthographic)
-        * 2. Orthographic Projection
-        *   parameters:
-        * eye_fov: field of view Y
-        * aspect_ratio: width / height
-        * 
-        * Example: get_projection_matrix(45, 1, 0.1, 50)
-        */
+        // 中心旋转处理
+        zNear = -abs(zNear);
+        zFar = -abs(zFar);
         double theta = ((eye_fov / 2) / 180.0) * MY_PI; // half angle of field of eye
-        double yHeight = 2.0 * zNear * tan(theta);
+        double yHeight = 2.0 * abs(zNear) * tan(theta);	// 区分距离和坐标！这里是距离
         double xWidth = aspect_ratio * yHeight;
         double zLong = zNear - zFar;    // 这里注意一下：由于标准是看向-z轴，所以这里应该要near - far
         Eigen::Matrix4f squish;
@@ -190,7 +179,7 @@ int main(){
         return projection;
     }
     ```
-
+    
 *   **倒三角形的原因：**
     *   实际上画出来的三角形是倒着的，是因为三角形落在了摄像头的后方。注意到`get_projection_matrix`函数穿进去的zNear和zFar都是正的，但是三角形的z是负的。所以落在了摄像头的后方。这时候用projection矩阵，就会有一个类似对称翻转的效果了
     *   参考：[倒三角形原因](https://zhuanlan.zhihu.com/p/453150407)
@@ -206,7 +195,7 @@ int main(){
         *   在`main.cpp`添加`get_rotation()`函数，得到Rodrigues矩阵。
         *   在`main()`函数里，写出能让用户输出自己想要旋转的轴，以及角度，按R则绕着输入轴旋转输入的角度。
         *   在`while`循环中计算rodrigues矩阵。并输入到`set_rodrigues()`函数中
-        *   添加按键控制。
+        *   添加按键控制。（比如按R就旋转（在if里面修改））
         *   在`rasterizer.cpp`中，添加`set_rodrigues`函数。
         *   在`draw`函数中，修改mvp的计算，在最后增加乘以rodrigues矩阵。
         *   注意修改hpp文件的成员变量和成员函数。
@@ -241,7 +230,7 @@ int main(){
         Vector3f v01 = {_v[1].x() - _v[0].x(), _v[1].y() - _v[0].y(), 0};
         Vector3f v12 = {_v[2].x() - _v[1].x(), _v[2].y() - _v[1].y(), 0};
         Vector3f v20 = {_v[0].x() - _v[2].x(), _v[0].y() - _v[2].y(), 0};
-        
+        // 用叉乘公式算出z坐标即可
         Vector3f v0p = {x - _v[0].x(), y - _v[0].y(), 0};
         Vector3f v1p = {x - _v[1].x(), y - _v[1].y(), 0};
         Vector3f v2p = {x - _v[2].x(), y - _v[2].y(), 0};
@@ -250,4 +239,82 @@ int main(){
     }
     ```
 
+*   光栅化：
+    ```c++
+    /Screen space rasterization
+    void rst::rasterizer::rasterize_triangle(const Triangle& t) {
+        auto v = t.toVector4();
+        
+        // TODO : Find out the bounding box of current triangle.
+        // iterate through the pixel and find if the current pixel is inside the triangle
+        int left_x, right_x, low_y, upper_y;
+        left_x  = std::min(v[0].x(), std::min(v[1].x(), v[2].x()));
+        right_x = std::max(v[0].x(), std::max(v[1].x(), v[2].x()));
+        low_y   = std::min(v[0].y(), std::min(v[1].y(), v[2].y()));
+        upper_y = std::max(v[0].y(), std::max(v[1].y(), v[2].y()));
     
+        // If so, use the following code to get the interpolated z value.
+        //auto[alpha, beta, gamma] = computeBarycentric2D(x, y, t.v);
+        //float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());
+        //float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+        //z_interpolated *= w_reciprocal;
+    
+        // TODO : set the current pixel (use the set_pixel function) to the color of the triangle (use getColor function) if it should be painted.
+        for(int x = left_x; x <= right_x; x++) {
+            for(int y = low_y; y <= upper_y; y++) {
+                if(insideTriangle(x + 0.5, y + 0.5, t.v)) {
+                    auto[alpha, beta, gamma] = computeBarycentric2D(x + 0.5, y + 0.5, t.v);
+                    float w_reciprocal = 1.0/(alpha / v[0].w() + beta / v[1].w() + gamma / v[2].w());   // 这里为什么是w？
+                    float z_interpolated = alpha * v[0].z() / v[0].w() + beta * v[1].z() / v[1].w() + gamma * v[2].z() / v[2].w();
+                    z_interpolated *= w_reciprocal; // 透视矫正插值
+    
+                    if(depth_buf[get_index(x, y)] > z_interpolated) {
+                        depth_buf[get_index(x, y)] = z_interpolated;    //  更新最小深度
+                        Vector3f point = {(float)x, (float)y, z_interpolated};
+                        // 由于目前的作业三角形仅仅为单色。故getColor()方法，仅仅取了第一个顶点的颜色！
+                        // 后面学习了着色shading后，就可以用插值来计算三角形里面不同像素的颜色了！
+                        Vector3f color = t.getColor(); 
+                        set_pixel(point, color);
+                    }
+                }
+            }
+        }
+    }
+    ```
+
+
+
+### 3. Advance
+
+*   **细节：**
+    **用 super-sampling 处理 Anti-aliasing :** 
+    你可能会注意 到，当我们放大图像时，图像边缘会有锯齿感。我们可以用 super-sampling 来解决这个问题，即对每个像素进行 2 * 2 采样，并比较前后的结果 (这里 并不需要考虑像素与像素间的样本复用)。需要注意的点有，对于像素内的每 一个样本都需要维护它自己的深度值，即每一个像素都需要维护一个 sample list。最后，如果你实现正确的话，你得到的三角形不应该有不正常的黑边。
+*   **SSAA与MSAA的区别：**
+    参考链接：[SSAA vs. MSAA](https://zhuanlan.zhihu.com/p/454001952)
+    *   **SSAA:**
+        每个像素分为4个小像素，对每个小像素进行计算depth_buffer和frame_buffer，然后根据4个小像素平均值，算出原像素的值
+    *   **MSAA:**
+        每个像素分为4个小像素，对每个小像素计算在不在三角形内，然后计算覆盖率。比如1/4, 3/4等。最后用覆盖率乘以原像素的原来的值，来得到原像素的最终值！
+*   实现步骤分析：
+*   
+*   
+*   
+*   
+*   待做
+
+
+
+
+
+
+
+## Homework_3
+
+
+
+
+
+## 代码框架分析
+
+
+
