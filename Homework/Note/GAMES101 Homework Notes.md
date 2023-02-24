@@ -281,8 +281,12 @@ int main(){
         }
     }
     ```
-
-
+    
+    *   代码中，关于计算z插值的公式的解释：
+        其实三个式子是：
+        透视矫正插值（perspective-correct interpolation）
+        参考1：https://blog.csdn.net/qq_38065509/article/details/105878504
+        参考2: https://zhuanlan.zhihu.com/p/483759206
 
 ### 3. Advance
 
