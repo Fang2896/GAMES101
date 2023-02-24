@@ -310,6 +310,34 @@ int main(){
 
 ## Homework_3
 
+### 1. Details
+
+*   本次实验需要完成的任务：
+    1.   修改函数`rasterize_triangle(const Triangle& t) ` （在rasterizer.cpp）：
+         在此处实现与作业2类似的插值算法，实现法向量、颜色、纹理颜色的插值。
+    2.   修改函数`get_projection_matrix() ` （在main.cpp）：
+         将你自己在之前的实验中实现的投影矩阵填到此处，此时可以运行 `./Rasterizer output.png normal` 来观察法向量实现结果。
+    3.   修改函数`phong_fragment_shader()` （在main.cpp）：
+         实现Blinn-Phong模型计算 Fragment Color.
+    4.   修改函数`texture_fragment_shader()` （在main.cpp）：
+         在实现Blinn-Phong的基础上，将纹理颜色视为公式中的kd，实现Texture Shading Fragment Shader.
+    5.   修改函数`bump_fragment_shader()` （在main.cpp）:
+         在实现 Blinn-Phong的基础上，仔细阅读该函数中的注释，实现Bump mapping.
+    6.   修改函数``displacement_fragment_shader()` （在main.cpp）: 
+         在实现 Bump mapping 的基础上，实现 displacement mapping.
+
+
+
+### 2. Code
+
+
+
+
+
+### 3. Advance
+
+
+
 
 
 
