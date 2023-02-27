@@ -139,15 +139,23 @@ int main(){
         Eigen::Matrix4f rotation;
         double alpha = (rotation_angle / 180.0) * MY_PI;
         rotation << cos(alpha), -1.0 * sin(alpha), 0, 0,
-                    sin(alpha), cos(alpha), 0, 0,
+                    sin(alpha), cos(alpha), 0, 0,# 
+    
+    ---
+    
+    *本笔记为个人(M1kanN)的学习笔记。记录用作复习
                     0 ,0, 1, 0,
                     0, 0, 0, 1;
         model = rotation * model;
+    # 
     
+    ---
+    
+    *本笔记为个人(M1kanN)的学习笔记。记录用作复习
         return model;
     }
     ```
-
+    
 *   投影矩阵
     ```c++
     Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
@@ -330,13 +338,9 @@ int main(){
     6.   修改函数``displacement_fragment_shader()` （在main.cpp）: 
          在实现 Bump mapping 的基础上，实现 displacement mapping.
 
-
-
 ### 2. Code
 
-
-
-
+*   按照公式以及注释一步步来就行了。
 
 
 
